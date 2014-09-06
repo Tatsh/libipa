@@ -24,8 +24,10 @@ def _apple_keys_first(items):
         return -9
     if key == 'MinimumOSVersion':
         return -8
-    if key.startswith('UI'):
+    if key.startswith('MK'):
         return -7
+    if key.startswith('UI'):
+        return -6
 
     return key
 
