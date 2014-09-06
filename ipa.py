@@ -129,6 +129,7 @@ class IPAFile(ZipFile):
 
 if __name__ == '__main__':
     try:
-        print(IPAFile(sys.argv[1]))
+        print('Reading %s' % (sys.argv[1],), file=sys.stderr)
+        print(unicode(IPAFile(sys.argv[1])))
     except BadIPAError as e:
         print(e.msg, file=sys.stderr)
