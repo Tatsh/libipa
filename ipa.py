@@ -13,27 +13,53 @@ __all__ = [
     'IPAFile',
 ]
 
+
 def _apple_keys_first(items):
-    """Attempt to put all custom keys last"""
+    """Attempt to put all Apple official keys first.
+
+    https://developer.apple.com/library/ios/documentation/general/Reference/InfoPlistKeyReference/Introduction/Introduction.html"""
     key, val = items
+    if key.startswith('AP'):  # APInstallerURL
+        return -13
+    if key.startswith('ATS'):  # ATSApplicationFontsPath
+        return -12
     if key == 'BuildMachineOSBuild':
         return -11
     if key.startswith('CF'):
         return -10
-    if key.startswith('DT'):
+    if key.startswith('CS'):  # CSResourcesFileMapped
         return -9
-    if key == 'MinimumOSVersion':
+    if key.startswith('DT'):
         return -8
-    if key.startswith('MK'):
+    if key.startswith('GK'):  # GameKit keys
         return -7
-    if key.startswith('UI'):
+    if key.startswith('LS'):  # Launch Services
         return -6
+    if key == 'MinimumOSVersion':
+        return -5
+    if key.startswith('MK'):
+        return -4
+    if key.startswith('NS'):
+        return -3
+    if key.startswith('QL'):  # QLSandboxUnsupported
+        return -2
+    if key == 'QuartzGLEnable':
+        return -1
+    if key.startswith('UI'):
+        return 0
+    if key.startswith('UT'):  # UTExportedTypeDeclarations
+        return 1
 
     return key
 
 
 class BadIPAError(Exception):
-    pass
+    msg = 'File "%s" not detected as iOS application distribution file.'
+
+    def __init__(self, filename, msg=None):
+        if msg:
+            self.msg = msg
+        self.msg = self.msg % (filename,)
 
 
 class IPAFile(ZipFile):
@@ -67,8 +93,7 @@ class IPAFile(ZipFile):
 
     def _raise_ipa_error(self):
         self.close()
-        raise BadIPAError('File not detected as iOS application '
-                          'distribution file')
+        raise BadIPAError(self.filename)
 
     def _get_app_info(self):
         """Find application's Info.plist and read it"""
@@ -103,4 +128,7 @@ class IPAFile(ZipFile):
 
 
 if __name__ == '__main__':
-    print(IPAFile(sys.argv[1]))
+    try:
+        print(IPAFile(sys.argv[1]))
+    except BadIPAError as e:
+        print(e.msg, file=sys.stderr)
