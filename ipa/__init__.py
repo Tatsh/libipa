@@ -66,6 +66,8 @@ class BadIPAError(Exception):
 
 
 class IPAFile(ZipFile):
+    info_plist_regex = re.compile(ur'^Payload/[\w\-_\s]+\.app/Info\.plist$',
+                                  re.UNICODE)
     app_info = None
 
     def __init__(self,
@@ -83,8 +85,7 @@ class IPAFile(ZipFile):
                          allowZip64=allowZip64)
 
         filenames = self.namelist()
-        app_dir_regex = re.compile(ur'^Payload/\w+\.app/$', re.UNICODE)
-        matched = len([x for x in [re.match(app_dir_regex, y)
+        matched = len([x for x in [re.match(self.info_plist_regex, y)
                                    for y in filenames]
                        if x]) == 1
         is_ipa = 'iTunesMetadata.plist' in filenames and matched
@@ -101,11 +102,9 @@ class IPAFile(ZipFile):
     def _get_app_info(self):
         """Find application's Info.plist and read it"""
         info_plist = None
-        info_plist_regex = re.compile(ur'Payload/\w+\.app/Info\.plist',
-                                      re.UNICODE)
 
         for data in self.filelist:
-            if re.match(info_plist_regex, data.filename):
+            if re.match(self.info_plist_regex, data.filename):
                 info_plist = data
 
         if not info_plist:
