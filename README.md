@@ -13,4 +13,6 @@ Note that `IPAFile` is just a subclass of `ZipFile` from the [`zipfile`](https:/
 >>> ipa = IPAFile('Chrome 37.2062.52.ipa')
 >>> ipa.app_info['CFBundleIdentifier']
 'com.google.chrome.ios'
+>>> ipa.is_universal()
+True
 ```
