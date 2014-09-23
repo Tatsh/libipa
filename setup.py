@@ -6,7 +6,7 @@ setup(
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
     packages=['ipa'],
-    url='https://bitbucket.org/driverside/motoscraper',
+    url='https://github.com/Tatsh/libipa',
     license='LICENSE.txt',
     description='Library to read IPA files (iOS application archives).',
     long_description='No description.',
