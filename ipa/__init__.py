@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import print_function
 import json
 import re
@@ -10,6 +12,7 @@ from zipfile import (
 from biplist import readPlistFromString
 
 __all__ = [
+    'BadIPAError',
     'IPAFile',
 ]
 
@@ -112,6 +115,14 @@ class IPAFile(ZipFile):
         self.app_info = readPlistFromString(info_plist)
 
         return self.app_info
+
+    def is_universal(self):
+        try:
+            data = self.app_info['UIDeviceFamily']
+        except KeyError:
+            return False
+
+        return len(data) > 1
 
     def __str__(self):
         structured_types = (list, dict,)
