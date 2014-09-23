@@ -1,6 +1,6 @@
 # Library to read IPA files
 
-Compatible with Python 2.7, 3.2, and 3.3.
+Compatible with Python 2.7, 3.3, and 3.4.
 
 ## Usage
 
