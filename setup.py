@@ -12,5 +12,6 @@ setup(
     long_description='No description.',
     install_requires=[
         'biplist>=0.7',
+        'six>=1.7.3',
     ],
 )
