@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from os import remove as rm
 from tempfile import mkstemp
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -6,6 +7,7 @@ import string
 import unittest
 
 from biplist import writePlistToString
+import six
 
 from ipa import BadIPAError, IPAFile
 
@@ -20,10 +22,10 @@ class TestIPAFile(unittest.TestCase):
 
         return ''.join(ret)
 
-    def _create_ipa(self, create_info_plist=True, universal=False):
+    def _create_ipa(self, create_info_plist=True, universal=False, app_name=None):
         h, zippath = mkstemp(prefix='libipa-', suffix='.ipa')
         self._temp_files.append(zippath)
-        app_dir = '%s.app' % (self._random_string(),)
+        app_dir = '%s.app' % (self._random_string(),) if not app_name else app_name
 
         with ZipFile(zippath, 'w', ZIP_DEFLATED) as h:
             if create_info_plist:
@@ -40,7 +42,12 @@ class TestIPAFile(unittest.TestCase):
                 else:
                     info['UIDeviceFamily'] = [1]
 
-                h.writestr('Payload/%s/Info.plist' % (app_dir,), writePlistToString(info))
+                if six.PY3 and type(app_dir) is str:
+                    app_dir = app_dir.encode('utf-8')
+
+                info_plist_name = (b'Payload/' + app_dir + b'/Info.plist').decode('utf-8')
+
+                h.writestr(info_plist_name, writePlistToString(info))
                 h.writestr('iTunesMetadata.plist', writePlistToString({'Test': 'Data'}))
 
         return zippath
@@ -62,6 +69,34 @@ class TestIPAFile(unittest.TestCase):
         for k in keys:
             self.assertIn(k, ipa.app_info)
 
+    def test_unicode_app_name(self):
+        ipa = IPAFile(self._create_ipa(app_name='ありがとう你好مرحبا.app'.encode('utf-8')))
+        keys = (
+            'CFBundleIdentifier',
+            'CFBundleDisplayName',
+            'LSRequiresIPhoneOS',
+            'MinimumOSVersion',
+            'UIStatusBarStyle',
+            'UIDeviceFamily',
+        )
+
+        for k in keys:
+            self.assertIn(k, ipa.app_info)
+
+    def test_string_repr(self):
+        data = str(IPAFile(self._create_ipa()))
+        keys = (
+            'CFBundleIdentifier',
+            'CFBundleDisplayName',
+            'LSRequiresIPhoneOS',
+            'MinimumOSVersion',
+            'UIStatusBarStyle',
+            'UIDeviceFamily',
+        )
+
+        for k in keys:
+            self.assertIn('%s:' % (k,), data)
+
     def test_ipa_non_universal(self):
         ipa = IPAFile(self._create_ipa())
         self.assertEqual([1], ipa.app_info['UIDeviceFamily'])
@@ -78,6 +113,3 @@ class TestIPAFile(unittest.TestCase):
                 rm(z)
             except IOError:
                 continue
-
-if __name__ == '__main__':
-    unittest.main()
