@@ -66,7 +66,7 @@ class BadIPAError(Exception):
 
 
 class IPAFile(ZipFile):
-    info_plist_regex = re.compile(ur'^Payload/[\w\-_\s]+\.app/Info\.plist$',
+    info_plist_regex = re.compile(r'^Payload/[\w\-_\s]+\.app/Info\.plist$',
                                   re.UNICODE)
     app_info = None
 
@@ -126,7 +126,7 @@ class IPAFile(ZipFile):
     def __str__(self):
         structured_types = (list, dict,)
         ret = []
-        items = sorted(IPAFile(sys.argv[1]).app_info.items(),
+        items = sorted(self.app_info.items(),
                        key=_apple_keys_first)
 
         for (k, v) in items:
