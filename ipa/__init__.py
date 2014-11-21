@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import json
+import logging
 import re
 import sys
 from zipfile import (
@@ -12,8 +13,11 @@ from zipfile import (
 from biplist import readPlistFromString
 
 __all__ = [
+    'AppNameOrVersionError',
     'BadIPAError',
     'IPAFile',
+    'IPAInfo',
+    'UnknownDeviceFamilyError',
 ]
 
 
@@ -65,16 +69,26 @@ class BadIPAError(Exception):
         self.msg = self.msg % (filename,)
 
 
+class AppNameOrVersionError(Exception):
+    pass
+
+
+class UnknownDeviceFamilyError(Exception):
+    pass
+
+
 class IPAFile(ZipFile):
     info_plist_regex = re.compile(r'^Payload/[\w\-_\s]+\.app/Info\.plist$',
                                   re.UNICODE)
     app_info = None
+    logger = logging.getLogger(__name__)
 
     def __init__(self,
                  file,
                  mode='r',
                  compression=ZIP_STORED,
-                 allowZip64=True):
+                 allowZip64=True,
+                 level=logging.ERROR):
         """Open IPA file. Primary difference from ZipFile is that allowZip64
         is set to True by default because many IPA files are larger than 2
         GiB in file size."""
@@ -115,13 +129,87 @@ class IPAFile(ZipFile):
 
         return self.app_info
 
-    def is_universal(self):
-        try:
-            data = self.app_info['UIDeviceFamily']
-        except KeyError:
-            return False
+    def get_device_family(self):
+        device_families = self.app_info['UIDeviceFamily']
 
-        return len(data) > 1
+        if len(device_families) == 1:
+            family = device_families[0]
+
+            # Sometimes these values are not longs, but instead strings
+            # (NSString of course)
+            if isinstance(family, str):
+                family = int(family)
+
+            if family == 2:
+                device_family = 'ipad'
+            elif family == 1:
+                device_family = 'iphone'  # iPhone/iPod Touch only app
+            else:
+                raise UnknownDeviceFamilyError('Unknown device family ID %d' % (family,))
+        else:
+            device_family = 'universal'
+
+        return device_family
+
+    def is_universal(self):
+        return get_device_family() == 'universal'
+
+    def get_app_name(self):
+        keys = (
+            'CFBundleDisplayName',
+            'CFBundleName',
+            'CFBundleExecutable',
+            'CFBundleIdentifier',
+        )
+        name = None
+
+        for key in keys:
+            if key not in self.app_info:
+                continue
+
+            name = self.app_info[key].strip()
+
+            if not name:
+                continue
+            else:
+                break
+
+        if not name:
+            raise AppNameOrVersionError('Unable to get an application name %s' %
+                                        (app_info,))
+
+        return name
+
+    def get_app_version(self):
+        try:
+            val = self.app_info['CFBundleShortVersionString'].strip()
+
+            if val:
+                return val
+        except KeyError:
+            val = self.app_info['CFBundleVersion'].strip()
+
+            if val:
+                return val
+
+        raise AppNameOrVersionError('Cannot get application version string')
+
+    def get_ipa_filename(self):
+        """
+        Returns an approximate name of the IPA that iTunes would use when
+        saving which is normally 'Application Name <versionNumber>.ipa'.
+        """
+        try:
+            return '%s %s.ipa' % (
+                self.get_app_name(),
+                self.get_app_version(),
+            )
+        except UnicodeEncodeError as e:
+            self.logger.error('UnicodeEncodeError with name or version key '
+                              '(%s)' % (self.app_info['CFBundleIdentifier'],))
+            raise e
+
+        raise AppNameOrVersionError('Could not determine an IPA file name')
 
     def __str__(self):
         structured_types = (list, dict,)
@@ -135,6 +223,11 @@ class IPAFile(ZipFile):
             ret.append('%s: %s' % (k, v,))
 
         return '\n'.join(ret)
+
+
+class IPAInfo(IPAFile):
+    def __init__(self, app_info={}, logger=None):
+        self.app_info = app_info
 
 
 if __name__ == '__main__':
