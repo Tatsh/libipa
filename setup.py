@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='libipa',
-    version='0.0.3',
+    version='0.0.4',
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
     packages=['ipa'],
