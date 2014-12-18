@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
 from os import remove as rm
 from tempfile import mkstemp
@@ -30,7 +29,10 @@ class TestIPAFile(unittest.TestCase):
 
         if not app_name:
             app_name = self._random_string()
-        app_dir = b'%s.app' % (app_name,)
+        if six.PY2:
+            app_dir = b'%s.app' % (app_name,)
+        else:
+            app_dir = '{0}.app'.format(app_name).encode('utf-8')
 
         with ZipFile(zippath, 'w', ZIP_DEFLATED) as h:
             if create_info_plist:
@@ -49,6 +51,10 @@ class TestIPAFile(unittest.TestCase):
 
                 app_dir = b'Payload/' + app_dir + b'/'
                 app_path = app_dir + app_name
+
+                if six.PY3:
+                    app_path = app_path.decode('utf-8')
+
                 h.writestr(app_path, b'FACE')
 
                 if bundle_display_name is False:
@@ -60,6 +66,9 @@ class TestIPAFile(unittest.TestCase):
                     info['UIDeviceFamily'] = [1]
 
                 info_plist_name = app_dir + b'Info.plist'
+
+                if six.PY3:
+                    info_plist_name = info_plist_name.decode('utf-8')
 
                 h.writestr(info_plist_name, writePlistToString(info))
                 h.writestr('iTunesMetadata.plist', writePlistToString({'Test': 'Data'}))
