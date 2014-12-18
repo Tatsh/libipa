@@ -6,6 +6,7 @@ setup(
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
     packages=['ipa'],
+    scripts=['bin/ipa-unzip-bin'],
     url='https://github.com/Tatsh/libipa',
     license='LICENSE.txt',
     description='Library to read IPA files (iOS application archives).',
