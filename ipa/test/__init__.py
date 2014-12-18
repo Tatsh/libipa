@@ -24,30 +24,42 @@ class TestIPAFile(unittest.TestCase):
 
         return ''.join(ret)
 
-    def _create_ipa(self, create_info_plist=True, universal=False, app_name=None):
+    def _create_ipa(self, create_info_plist=True, universal=False, app_name=None, bundle_display_name=None):
         h, zippath = mkstemp(prefix='libipa-', suffix='.ipa')
         self._temp_files.append(zippath)
-        app_dir = '%s.app' % (self._random_string(),) if not app_name else app_name
+
+        if not app_name:
+            app_name = self._random_string()
+        app_dir = b'%s.app' % (app_name,)
 
         with ZipFile(zippath, 'w', ZIP_DEFLATED) as h:
             if create_info_plist:
                 info = dict(
                     CFBundleIdentifier='com.%s.%s' % (self._random_string(), self._random_string(),),
-                    CFBundleDisplayName=self._random_string(),
+                    CFBundleDisplayName=app_name,
                     LSRequiresIPhoneOS=True,
                     MinimumOSVersion='6.0',
                     UIStatusBarStyle='UIStatusBarStyleDefault',
                 )
+
+                if six.PY3 and type(app_dir) is str:
+                    app_dir = app_dir.encode('utf-8')
+                if six.PY3 and type(app_name) is str:
+                    app_name = app_name.encode('utf-8')
+
+                app_dir = b'Payload/' + app_dir + b'/'
+                app_path = app_dir + app_name
+                h.writestr(app_path, b'FACE')
+
+                if bundle_display_name is False:
+                    del info['CFBundleDisplayName']
 
                 if universal:
                     info['UIDeviceFamily'] = [1, 2]
                 else:
                     info['UIDeviceFamily'] = [1]
 
-                if six.PY3 and type(app_dir) is str:
-                    app_dir = app_dir.encode('utf-8')
-
-                info_plist_name = (b'Payload/' + app_dir + b'/Info.plist').decode('utf-8')
+                info_plist_name = app_dir + b'Info.plist'
 
                 h.writestr(info_plist_name, writePlistToString(info))
                 h.writestr('iTunesMetadata.plist', writePlistToString({'Test': 'Data'}))
@@ -72,7 +84,7 @@ class TestIPAFile(unittest.TestCase):
             self.assertIn(k, ipa.app_info)
 
     def test_unicode_app_name(self):
-        ipa = IPAFile(self._create_ipa(app_name='ありがとう你好مرحبا.app'.encode('utf-8')))
+        ipa = IPAFile(self._create_ipa(app_name='ありがとう你好مرحبا'.encode('utf-8')))
         keys = (
             'CFBundleIdentifier',
             'CFBundleDisplayName',
@@ -106,6 +118,22 @@ class TestIPAFile(unittest.TestCase):
     def test_ipa_universal(self):
         ipa = IPAFile(self._create_ipa(universal=True))
         self.assertGreater(len(ipa.app_info['UIDeviceFamily']), 1)
+
+    def test_get_bin_name_normal(self):
+        ipa = IPAFile(self._create_ipa(app_name='A Name'))
+        self.assertEqual('A Name', ipa.get_bin_name())
+
+    def test_get_bin_name_no_display_name(self):
+        ipa = IPAFile(self._create_ipa(app_name='A Name', bundle_display_name=False))
+        self.assertEqual('A Name', ipa.get_bin_name())
+
+    def test_get_bin_name_full(self):
+        ipa = IPAFile(self._create_ipa(app_name='A Name'))
+        self.assertEqual('Payload/A Name.app/A Name', ipa.get_bin_name(full=True))
+
+    def test_get_bin_name_full_no_display_name(self):
+        ipa = IPAFile(self._create_ipa(app_name='A Name', bundle_display_name=False))
+        self.assertEqual('Payload/A Name.app/A Name', ipa.get_bin_name(full=True))
 
     def tearDown(self):
         for z in self._temp_files:

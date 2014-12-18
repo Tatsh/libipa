@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import print_function
+from shutil import move as move_file, rmtree
+from tempfile import mkdtemp
 import json
 import logging
 import re
@@ -78,7 +79,7 @@ class UnknownDeviceFamilyError(Exception):
 
 
 class IPAFile(ZipFile):
-    info_plist_regex = re.compile(r'^Payload/[\w\-_\s]+\.app/Info\.plist$',
+    info_plist_regex = re.compile(r'^Payload/[^/]+/Info\.plist$',
                                   re.UNICODE)
     app_info = None
     logger = logging.getLogger(__name__)
@@ -105,13 +106,13 @@ class IPAFile(ZipFile):
         is_ipa = 'iTunesMetadata.plist' in filenames and matched
 
         if not is_ipa:
-            self._raise_ipa_error()
+            self._raise_ipa_error('Not an IPA')
 
         self._get_app_info()
 
-    def _raise_ipa_error(self):
+    def _raise_ipa_error(self, msg):
         self.close()
-        raise BadIPAError(self.filename)
+        raise BadIPAError(self.filename if not msg else msg)
 
     def _get_app_info(self):
         """Find application's Info.plist and read it"""
@@ -211,6 +212,31 @@ class IPAFile(ZipFile):
 
         raise AppNameOrVersionError('Could not determine an IPA file name')
 
+    def get_bin_name(self, full=False):
+        alt = False
+
+        try:
+            bin_name = self.app_info['bundleDisplayName']
+        except KeyError:
+            self.logger.info('Using alternative method to guess binary name')
+
+            alt = True
+            app_dir = [x for x in self.namelist()
+                       if re.match(r'Payload/.+\.app', x)][0].split('/')[0:2][1]
+            bin_name = app_dir[0:-4]
+
+        if full:
+            if alt:
+                return 'Payload/%s/%s' % (app_dir, bin_name,)
+
+            return 'Payload/%s.%s/%s' % (
+                self.app_info['bundleDisplayName'],
+                self.app_info['fileExtension'],
+                bin_name,
+            )
+
+        return bin_name
+
     def __str__(self):
         structured_types = (list, dict,)
         ret = []
@@ -223,6 +249,8 @@ class IPAFile(ZipFile):
             ret.append('%s: %s' % (k, v,))
 
         return '\n'.join(ret)
+
+    __repr__ = __str__
 
 
 class IPAInfo(IPAFile):
