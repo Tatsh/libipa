@@ -289,7 +289,7 @@ class IPAFile(ZipFile):
 
         return '\n'.join(ret)
     
-    __repr_ = __str__
+    __repr__ = __str__
 
 class IPAInfo(IPAFile):
     def __init__(self, app_info={}, logger=None):
