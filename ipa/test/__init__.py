@@ -11,7 +11,10 @@ import unittest
 from biplist import writePlistToString
 import six
 
-from ipa import BadIPAError, IPAFile
+try:
+    from ipa import BadIPAError, IPAFile
+except ImportError:
+    execfile('../__init__.py')
 
 class TestIPAFile(unittest.TestCase):
     _temp_files = []

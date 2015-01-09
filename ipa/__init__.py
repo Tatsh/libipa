@@ -66,12 +66,15 @@ class BadIPAError(Exception):
     def __init__(self, filename, msg=None):
         if msg:
             self.msg = msg
+
         self.msg = self.msg % (filename,)
 
 
-class AppNameOrVersionError(Exception):
+class UnknownApplicationNameError(Exception):
     pass
 
+class UnknownApplicationVersionError(Exception):
+    pass
 
 class UnknownDeviceFamilyError(Exception):
     pass
@@ -82,9 +85,10 @@ class IPAFile(ZipFile):
                                   re.UNICODE)
     app_info = None
     logger = logging.getLogger(__name__)
-
+    debug = False
+    
     def __init__(self,
-                 file,
+                 file=None,
                  mode='r',
                  compression=ZIP_STORED,
                  allowZip64=True,
@@ -112,7 +116,7 @@ class IPAFile(ZipFile):
     def _raise_ipa_error(self):
         self.close()
         raise BadIPAError(self.filename)
-
+    
     def _get_app_info(self):
         """Find application's Info.plist and read it"""
         info_plist = None
@@ -128,56 +132,84 @@ class IPAFile(ZipFile):
         self.app_info = readPlistFromString(info_plist)
 
         return self.app_info
-
-    def get_device_family(self):
+    
+    def _vailidate_family(self, family):
+        return family if not isinstance(family, str) else int(family)
+    
+    def _get_device_family(self):
         device_families = self.app_info['UIDeviceFamily']
-
-        if len(device_families) == 1:
-            family = device_families[0]
-
-            # Sometimes these values are not longs, but instead strings
-            # (NSString of course)
-            if isinstance(family, str):
-                family = int(family)
-
-            if family == 2:
-                device_family = 'ipad'
-            elif family == 1:
-                device_family = 'iphone'  # iPhone/iPod Touch only app
-            else:
-                raise UnknownDeviceFamilyError('Unknown device family ID %d' % (family,))
-        else:
-            device_family = 'universal'
-
-        return device_family
-
-    def is_universal(self):
-        return get_device_family() == 'universal'
-
-    def get_app_name(self):
+        has_device_id = len(device_families) == 1
+        
+        if not has_device_id:
+            return 'universal'
+        
+        family = self._vailidate_family(device_families[0])
+        
+        if family == 1:
+            return 'iphone'
+        elif family == 2:
+            return 'ipad'
+        
+        raise UnknownDeviceFamilyError(
+            'Unknown device family id ({0})'.format(family)
+        )
+    
+    
+    def _determine_app_name(self, name):
+        return name if name else None
+    
+    def _get_app_name(self):
         keys = (
             'CFBundleDisplayName',
             'CFBundleName',
             'CFBundleExecutable',
             'CFBundleIdentifier',
         )
+        
         name = None
-
+        
         for key in keys:
-            if key not in self.app_info:
-                continue
-
-            name = self.app_info[key].strip()
-
-            if not name:
-                continue
-            else:
+            if key in self.app_info:
+                name = self.app_info[key].strip()
                 break
-
+        
         if not name:
-            raise AppNameOrVersionError('Unable to get an application name %s' %
-                                        (app_info,))
-
+            raise AppNameOrVersionError('Application name cannot be found.')
+        
+        return name
+    
+    def _get_app_version(self):
+        keys = (
+            'CFBundleShortVersionString',
+            'CFBundleVersion',
+        )
+        
+        version = None
+        
+        for key in keys:
+            if key in self.app_info:
+                version = self.app_info[key].strip()
+                break
+        
+        if not version:
+            raise AppNameOrVersionError('Application version cannot be found.')
+        
+        return version
+    
+    def get_device_family(self):
+       return self._get_device_family()
+    
+    def is_ipad(self):
+        return self.get_device_family() == 'ipad'
+    
+    def is_iphone(self):
+        return self.get_device_family() == 'iphone'
+    
+    def is_universal(self):
+        return self.get_device_family() == 'universal'
+    
+    def get_app_name(self):
+        name = self._get_app_name()
         return name
 
     def get_app_version(self):
@@ -231,8 +263,14 @@ class IPAInfo(IPAFile):
 
 
 if __name__ == '__main__':
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.ERROR)
+    
     try:
-        print('Reading %s' % (sys.argv[1],), file=sys.stderr)
-        print(unicode(IPAFile(sys.argv[1])))
+        logging.info('Reading {0}'.format(sys.argv[1]))
+        logging.info(unicode(IPAFile(sys.argv[1])))
+        #print('Reading %s' % (sys.argv[1],), file=sys.stderr)
+        #print(unicode(IPAFile(sys.argv[1])))
     except BadIPAError as e:
-        print(e.msg, file=sys.stderr)
+        logging.exception(e.msg)
+        #print(e.msg, file=sys.stderr)
