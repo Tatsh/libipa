@@ -15,16 +15,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('ipa', metavar='IPA_FILE', nargs=1)
-    parser.add_argument('-d', '--destination', metavar='DEST', default='.', 
-required=False)
+    parser.add_argument(
+        '-d', '--destination', metavar='DEST', default='.', required=False
+    )
 
     args = parser.parse_args()
     dest = realpath(args.destination)
 
     if not isdir(dest):
         logging.error("Destination is expected to be a directory.")
-        #print('Error: Destination is expected to be a directory', 
-file=sys.stderr)
+        #print('Error: Destination is expected to be a directory', file=sys.stderr)
         sys.exit(1)
 
     with IPAFile(args.ipa[0]) as fp:
