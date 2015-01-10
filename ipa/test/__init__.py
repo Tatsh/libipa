@@ -24,7 +24,7 @@ class TestIPAFile(unittest.TestCase):
         return ''.join(ret)
 
     def _create_ipa(self, create_info_plist=True, universal=False, 
-app_name=None, bundle_display_name=None):
+                    app_name=None, bundle_display_name=None):
         h, zippath = mkstemp(prefix='libipa-', suffix='.ipa')
         self._temp_files.append(zippath)
 
@@ -38,8 +38,9 @@ app_name=None, bundle_display_name=None):
         with ZipFile(zippath, 'w', ZIP_DEFLATED) as h:
             if create_info_plist:
                 info = dict(
-                    CFBundleIdentifier='com.%s.%s' % (self._random_string(), 
-self._random_string(),),
+                    CFBundleIdentifier='com.%s.%s' % (
+                        self._random_string(), self._random_string(),
+                    ),
                     CFBundleDisplayName=app_name,
                     LSRequiresIPhoneOS=True,
                     MinimumOSVersion='6.0',
@@ -73,14 +74,16 @@ self._random_string(),),
                     info_plist_name = info_plist_name.decode('utf-8')
 
                 h.writestr(info_plist_name, writePlistToString(info))
-                h.writestr('iTunesMetadata.plist', writePlistToString({'Test': 
-'Data'}))
+                h.writestr(
+                    'iTunesMetadata.plist', writePlistToString({'Test':'Data'})
+                )
 
         return zippath
 
     def test_bad_ipa(self):
-        self.assertRaises(BadIPAError, IPAFile, 
-self._create_ipa(create_info_plist=False))
+        self.assertRaises(
+            BadIPAError, IPAFile, self._create_ipa(create_info_plist=False)
+        )
 
     def test_ipa_info(self):
         ipa = IPAFile(self._create_ipa())
@@ -97,7 +100,9 @@ self._create_ipa(create_info_plist=False))
             self.assertIn(k, ipa.app_info)
 
     def test_unicode_app_name(self):
-        ipa = IPAFile(self._create_ipa(app_name='ありがとう你好مرحبا'.encode('utf-8')))
+        ipa = IPAFile(
+            self._create_ipa(app_name='ありがとう你好مرحبا'.encode('utf-8'))
+        )
         keys = (
             'CFBundleIdentifier',
             'CFBundleDisplayName',
@@ -137,20 +142,24 @@ self._create_ipa(create_info_plist=False))
         self.assertEqual('A Name', ipa.get_bin_name())
 
     def test_get_bin_name_no_display_name(self):
-        ipa = IPAFile(self._create_ipa(app_name='A Name', 
-bundle_display_name=False))
+        ipa = IPAFile(
+            self._create_ipa(app_name='A Name', bundle_display_name=False)
+        )
         self.assertEqual('A Name', ipa.get_bin_name())
 
     def test_get_bin_name_full(self):
         ipa = IPAFile(self._create_ipa(app_name='A Name'))
-        self.assertEqual('Payload/A Name.app/A Name', 
-ipa.get_bin_name(full=True))
+        self.assertEqual(
+            'Payload/A Name.app/A Name', ipa.get_bin_name(full=True)
+        )
 
     def test_get_bin_name_full_no_display_name(self):
-        ipa = IPAFile(self._create_ipa(app_name='A Name', 
-bundle_display_name=False))
-        self.assertEqual('Payload/A Name.app/A Name', 
-ipa.get_bin_name(full=True))
+        ipa = IPAFile(
+            self._create_ipa(app_name='A Name', bundle_display_name=False)
+        )
+        self.assertEqual(
+            'Payload/A Name.app/A Name', ipa.get_bin_name(full=True)
+        )
 
     def tearDown(self):
         for z in self._temp_files:
