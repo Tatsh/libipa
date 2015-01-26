@@ -35,33 +35,33 @@ def _apple_keys_first(items):
     key, val = items
     if key[0:2] is 'AP':
         return -13
-    elif key[0:3] is 'ATS':
+    if key[0:3] is 'ATS':
         return -12
-    elif key == 'BuildMachineOSBuild':
+    if key == 'BuildMachineOSBuild':
         return -11
-    elif key[0:2] is 'CF':
+    if key[0:2] is 'CF':
         return -10
-    elif key[0:2] is 'CS':
+    if key[0:2] is 'CS':
         return -9
-    elif key[0:2] is 'DT':
+    if key[0:2] is 'DT':
         return -8
-    elif key[0:2] is 'GK':
+    if key[0:2] is 'GK':
         return -7
-    elif key[0:2] is 'LS':
+    if key[0:2] is 'LS':
         return -6
-    elif key == 'MinimumOSVersion':
+    if key == 'MinimumOSVersion':
         return -5
-    elif key[0:2] is 'MK':
+    if key[0:2] is 'MK':
         return -4
-    elif key[0:2] is 'NS':
+    if key[0:2] is 'NS':
         return -3
-    elif key[0:2] is 'QL':
+    if key[0:2] is 'QL':
         return -2
-    elif key == 'QuartzGLEnable':
+    if key == 'QuartzGLEnable':
         return -1
-    elif key[0:2] is 'UI':
+    if key[0:2] is 'UI':
         return 0
-    elif key[0:2] is 'UT':
+    if key[0:2] is 'UT':
         return 1
    # if key.startswith('AP'):  # APInstallerURL
    #     return -13
