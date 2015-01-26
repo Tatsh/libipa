@@ -20,48 +20,85 @@ __all__ = [
     'UnknownDeviceFamilyError',
 ]
 
-
 def _apple_keys_first(items):
+    
     """Attempt to put all Apple official keys first.
-
+    
+    The following is an example of the speed increase of this modification.
+    ```
+    >>> timeit.timeit('a="ATS"\nif a.startswith("ATS"):\n pass', number=1000)
+    0.0004978179931640625
+    >>> timeit.timeit('a="ATS"\nif a[0:3] is "ATS":\n pass', number=1000)
+    0.0002808570861816406
+    ```
     https://developer.apple.com/library/ios/documentation/general/Reference/InfoPlistKeyReference/Introduction/Introduction.html"""
     key, val = items
-    if key.startswith('AP'):  # APInstallerURL
+    if key[0:2] is 'AP':
         return -13
-    if key.startswith('ATS'):  # ATSApplicationFontsPath
+    elif key[0:3] is 'ATS':
         return -12
-    if key == 'BuildMachineOSBuild':
+    elif key == 'BuildMachineOSBuild':
         return -11
-    if key.startswith('CF'):
+    elif key[0:2] is 'CF':
         return -10
-    if key.startswith('CS'):  # CSResourcesFileMapped
+    elif key[0:2] is 'CS':
         return -9
-    if key.startswith('DT'):
+    elif key[0:2] is 'DT':
         return -8
-    if key.startswith('GK'):  # GameKit keys
+    elif key[0:2] is 'GK':
         return -7
-    if key.startswith('LS'):  # Launch Services
+    elif key[0:2] is 'LS':
         return -6
-    if key == 'MinimumOSVersion':
+    elif key == 'MinimumOSVersion':
         return -5
-    if key.startswith('MK'):
+    elif key[0:2] is 'MK':
         return -4
-    if key.startswith('NS'):
+    elif key[0:2] is 'NS':
         return -3
-    if key.startswith('QL'):  # QLSandboxUnsupported
+    elif key[0:2] is 'QL':
         return -2
-    if key == 'QuartzGLEnable':
+    elif key == 'QuartzGLEnable':
         return -1
-    if key.startswith('UI'):
+    elif key[0:2] is 'UI':
         return 0
-    if key.startswith('UT'):  # UTExportedTypeDeclarations
+    elif key[0:2] is 'UT':
         return 1
+   # if key.startswith('AP'):  # APInstallerURL
+   #     return -13
+    #if key.startswith('ATS'):  # ATSApplicationFontsPath
+      #  return -12
+    #if key == 'BuildMachineOSBuild':
+      #  return -11
+    #if key.startswith('CF'):
+     #   return -10
+    #if key.startswith('CS'):  # CSResourcesFileMapped
+      #  return -9
+    #if key.startswith('DT'):
+      #  return -8
+    #if key.startswith('GK'):  # GameKit keys
+     #   return -7
+    #if key.startswith('LS'):  # Launch Services
+     #   return -6
+    #if key == 'MinimumOSVersion':
+     #   return -5
+    #if key.startswith('MK'):
+      #  return -4
+    #if key.startswith('NS'):
+      #  return -3
+    #if key.startswith('QL'):  # QLSandboxUnsupported
+     #   return -2
+    #if key == 'QuartzGLEnable':
+   #     return -1
+    #if key.startswith('UI'):
+     #   return 0
+    #if key.startswith('UT'):  # UTExportedTypeDeclarations
+     #   return 1
 
     return key
 
 
-class BadIPAError(Exception):
-    msg = 'File "%s" not detected as iOS application distribution file.'
+class InvalidIPAError(Exception):
+    msg = 'File "{0}" not detected as iOS application distribution file.'
 
     def __init__(self, filename, msg=None):
         if msg:
@@ -74,6 +111,9 @@ class InvalidApplicationNameError(Exception):
     pass
 
 class InvalidUnicodeApplicationNameError(UnicodeEncodeError):
+    pass
+
+class UnknownApplicationNameError(Exception):
     pass
 
 class UnknownApplicationVersionError(Exception):
@@ -118,7 +158,7 @@ class IPAFile(ZipFile):
 
     def _raise_ipa_error(self):
         self.close()
-        raise BadIPAError(self.filename)
+        raise InvalidIPAError(self.filename)
     
     def _get_app_info(self):
         """Find application's Info.plist and read it"""
@@ -139,7 +179,7 @@ class IPAFile(ZipFile):
     def _vailidate_family(self, family):
         return family if not isinstance(family, str) else int(family)
     
-    def _get_device_family(self):
+    def get_device_family(self):
         device_families = self.app_info['UIDeviceFamily']
         has_device_id = len(device_families) == 1
         
@@ -197,12 +237,11 @@ class IPAFile(ZipFile):
                 break
         
         if not version:
-            raise AppNameOrVersionError('Application version cannot be found.')
+            raise UnknownApplicationVersionError(
+                'libipa cannot determine the IPA version.'
+            )
         
         return version
-    
-    def get_device_family(self):
-       return self._get_device_family()
     
     def is_ipad(self):
         return self.get_device_family() == 'ipad'
@@ -241,7 +280,7 @@ class IPAFile(ZipFile):
                 self.get_app_name(),
                 self.get_app_version(),
             )
-        except UnicodeEncodeError as e:
+        except InvalidUnicodeApplicationNameError as e:
             self.logger.error(
                 'UnicodeEncodeError with name or version key '
                '(%s)'.format(self.app_info['CFBundleIdentifier'])
@@ -249,7 +288,9 @@ class IPAFile(ZipFile):
              
             raise e
 
-        raise AppNameOrVersionError('Could not determine an IPA file name')
+        raise UnknownApplicationNameError(
+            'Could not determine an IPA file name'
+        )
 
     def get_bin_name(self, full=False):
         alt = False
@@ -295,6 +336,8 @@ class IPAInfo(IPAFile):
     def __init__(self, app_info={}, logger=None):
         self.app_info = app_info
 
+# In the long run this will be removed and testing will be
+# accessed in the setup.py.
 if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.ERROR)
