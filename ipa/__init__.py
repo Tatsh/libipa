@@ -201,7 +201,7 @@ class IPAFile(ZipFile):
     def _determine_app_name(self, name):
         return name if name else None
     
-    def _get_app_name(self):
+    def get_app_name(self):
         keys = (
             'CFBundleDisplayName',
             'CFBundleName',
@@ -223,7 +223,7 @@ class IPAFile(ZipFile):
         
         return name
     
-    def _get_app_version(self):
+    def get_app_version(self):
         keys = (
             'CFBundleShortVersionString',
             'CFBundleVersion',
@@ -252,24 +252,6 @@ class IPAFile(ZipFile):
     def is_universal(self):
         return self.get_device_family() == 'universal'
     
-    def get_app_name(self):
-        name = self._get_app_name()
-        return name
-
-    def get_app_version(self):
-        try:
-            val = self.app_info['CFBundleShortVersionString'].strip()
-
-            if val:
-                return val
-        except KeyError:
-            val = self.app_info['CFBundleVersion'].strip()
-
-            if val:
-                return val
-
-        raise AppNameOrVersionError('Cannot get application version string')
-
     def get_ipa_filename(self):
         """
         Returns an approximate name of the IPA that iTunes would use when
