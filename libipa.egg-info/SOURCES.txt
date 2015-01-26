@@ -1,0 +1,12 @@
+LICENSE.txt
+MANIFEST.in
+README.md
+REQUIREMENTS.txt
+setup.py
+ipa/__init__.py
+ipa/test/__init__.py
+libipa.egg-info/PKG-INFO
+libipa.egg-info/SOURCES.txt
+libipa.egg-info/dependency_links.txt
+libipa.egg-info/requires.txt
+libipa.egg-info/top_level.txt

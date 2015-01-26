@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: libipa
+Version: 0.0.4
+Summary: Library to read IPA files (iOS application archives).
+Home-page: https://github.com/Tatsh/libipa
+Author: Andrew Udvare
+Author-email: audvare@gmail.com
+License: LICENSE.txt
+Description: No description.
+Platform: UNKNOWN

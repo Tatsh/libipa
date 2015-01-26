@@ -12,6 +12,7 @@ import six
 
 from ipa import InvalidIPAError, IPAFile
 
+
 class TestIPAFile(unittest.TestCase):
     _temp_files = []
 
@@ -23,8 +24,9 @@ class TestIPAFile(unittest.TestCase):
 
         return ''.join(ret)
 
-    def _create_ipa(self, create_info_plist=True, universal=False, 
-                    app_name=None, bundle_display_name=None):
+    def _create_ipa(self, create_info_plist=True, universal=False,
+                    iphone=False, ipad=False, app_name=None, 
+                    bundle_display_name=None):
         h, zippath = mkstemp(prefix='libipa-', suffix='.ipa')
         self._temp_files.append(zippath)
 
@@ -65,7 +67,12 @@ class TestIPAFile(unittest.TestCase):
 
                 if universal:
                     info['UIDeviceFamily'] = [1, 2]
+                elif iphone:
+                    info['UIDeviceFamily'] = [1]
+                elif ipad:
+                    info['UIDeviceFamily'] = [2]
                 else:
+                    # Default to one.
                     info['UIDeviceFamily'] = [1]
 
                 info_plist_name = app_dir + b'Info.plist'
@@ -100,9 +107,7 @@ class TestIPAFile(unittest.TestCase):
             self.assertIn(k, ipa.app_info)
 
     def test_unicode_app_name(self):
-        ipa = IPAFile(
-            self._create_ipa(app_name='ありがとう你好مرحبا'.encode('utf-8'))
-        )
+        ipa = IPAFile(self._create_ipa(app_name='ありがとう你好مرحبا'.encode('utf-8')))
         keys = (
             'CFBundleIdentifier',
             'CFBundleDisplayName',
@@ -132,7 +137,44 @@ class TestIPAFile(unittest.TestCase):
     def test_ipa_non_universal(self):
         ipa = IPAFile(self._create_ipa())
         self.assertEqual([1], ipa.app_info['UIDeviceFamily'])
-
+    
+    # Test the following methods.
+    def test_ipa_is_universal(self):
+        is_universal = None
+        ipa = IPAFile(self._create_ipa(universal=True))
+        is_universal = ipa.is_universal()
+        self.assertEqual(is_universal, True)
+    
+    def test_ipa_is_iphone(self):
+        is_iphone = None
+        ipa = IPAFile(self._create_ipa(iphone=True))
+        is_iphone = ipa.is_iphone()
+        self.assertEqual(is_iphone, True)
+    
+    def test_ipa_is_ipad(self):
+        is_ipad = False
+        ipa = IPAFile(self._create_ipa(ipad=True))
+        is_ipad = ipa.is_ipad()
+        self.assertEqual(is_ipad, True)
+   
+    def test_ipa_is_not_universal(self):
+        is_universal = None
+        ipa = IPAFile(self._create_ipa(iphone=True))
+        is_universal = ipa.is_universal()
+        self.assertEqual(is_universal, False)
+    
+    def test_ipa_is_not_iphone(self):
+        is_iphone = None
+        ipa = IPAFile(self._create_ipa(ipad=True))
+        is_iphone = ipa.is_iphone()
+        self.assertEqual(is_iphone, False)
+    
+    def test_ipa_is_not_ipad(self):
+        is_ipad = None
+        ipa = IPAFile(self._create_ipa(iphone=True))
+        is_ipad = ipa.is_ipad()
+        self.assertEqual(is_ipad, False)
+     
     def test_ipa_universal(self):
         ipa = IPAFile(self._create_ipa(universal=True))
         self.assertGreater(len(ipa.app_info['UIDeviceFamily']), 1)
