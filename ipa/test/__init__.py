@@ -12,7 +12,7 @@ import unittest
 from biplist import writePlistToString
 import six
 
-from ipa import InvalidIPAError, IPAFile
+from ipa import BadIPAError, IPAFile
 
 class TestIPAFile(unittest.TestCase):
     _temp_files = []
@@ -90,7 +90,7 @@ class TestIPAFile(unittest.TestCase):
 
     def test_bad_ipa(self):
         self.assertRaises(
-            InvalidIPAError, IPAFile, self._create_ipa(create_info_plist=False)
+            BadIPAError, IPAFile, self._create_ipa(create_info_plist=False)
         )
 
     def test_ipa_info(self):

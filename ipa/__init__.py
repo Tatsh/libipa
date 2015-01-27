@@ -21,16 +21,8 @@ __all__ = [
 ]
 
 def _apple_keys_first(items):
-    
     """Attempt to put all Apple official keys first.
     
-    The following is an example of the speed increase of this modification.
-    ```
-    >>> timeit.timeit('a="ATS"\nif a.startswith("ATS"):\n pass', number=1000)
-    0.0004978179931640625
-    >>> timeit.timeit('a="ATS"\nif a[0:3] is "ATS":\n pass', number=1000)
-    0.0002808570861816406
-    ```
     https://developer.apple.com/library/ios/documentation/general/Reference/InfoPlistKeyReference/Introduction/Introduction.html"""
     key, val = items
     if key[0:2] is 'AP':
@@ -63,41 +55,11 @@ def _apple_keys_first(items):
         return 0
     if key[0:2] is 'UT':
         return 1
-   # if key.startswith('AP'):  # APInstallerURL
-   #     return -13
-    #if key.startswith('ATS'):  # ATSApplicationFontsPath
-      #  return -12
-    #if key == 'BuildMachineOSBuild':
-      #  return -11
-    #if key.startswith('CF'):
-     #   return -10
-    #if key.startswith('CS'):  # CSResourcesFileMapped
-      #  return -9
-    #if key.startswith('DT'):
-      #  return -8
-    #if key.startswith('GK'):  # GameKit keys
-     #   return -7
-    #if key.startswith('LS'):  # Launch Services
-     #   return -6
-    #if key == 'MinimumOSVersion':
-     #   return -5
-    #if key.startswith('MK'):
-      #  return -4
-    #if key.startswith('NS'):
-      #  return -3
-    #if key.startswith('QL'):  # QLSandboxUnsupported
-     #   return -2
-    #if key == 'QuartzGLEnable':
-   #     return -1
-    #if key.startswith('UI'):
-     #   return 0
-    #if key.startswith('UT'):  # UTExportedTypeDeclarations
-     #   return 1
 
-    return 0x70ad57001
+    return 777
 
 
-class InvalidIPAError(Exception):
+class BadIPAError(Exception):
     msg = 'File "{0}" not detected as iOS application distribution file.'
 
     def __init__(self, filename, msg=None):
@@ -158,7 +120,7 @@ class IPAFile(ZipFile):
 
     def _raise_ipa_error(self):
         self.close()
-        raise InvalidIPAError(self.filename)
+        raise BadIPAError(self.filename)
     
     def _get_app_info(self):
         """Find application's Info.plist and read it"""
@@ -188,14 +150,6 @@ class IPAFile(ZipFile):
         
         family = self._vailidate_family(device_families[0])
         
-        '''
-        Optimization.
-        >>> timeit.timeit('a=1\nif a is 1:\n pass', number=1000)
-        0.00015115737915039062
-        >>> timeit.timeit('a=1\nif a == 1:\n pass', number=1000)
-        0.00015091896057128906
-        '''
-
         if family is 1:
             return 'iphone'
         elif family is 2:
