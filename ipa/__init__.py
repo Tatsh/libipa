@@ -20,9 +20,10 @@ __all__ = [
     'UnknownDeviceFamilyError',
 ]
 
+
 def _apple_keys_first(items):
     """Attempt to put all Apple official keys first.
-    
+
     https://developer.apple.com/library/ios/documentation/general/Reference/InfoPlistKeyReference/Introduction/Introduction.html"""
     key, val = items
     if key[0:2] is 'AP':
@@ -72,14 +73,18 @@ class BadIPAError(Exception):
 class InvalidApplicationNameError(Exception):
     pass
 
+
 class InvalidUnicodeApplicationNameError(UnicodeEncodeError):
     pass
+
 
 class UnknownApplicationNameError(Exception):
     pass
 
+
 class UnknownApplicationVersionError(Exception):
     pass
+
 
 class UnknownDeviceFamilyError(Exception):
     pass
@@ -91,7 +96,7 @@ class IPAFile(ZipFile):
     app_info = None
     logger = logging.getLogger('IPAFile')
     debug = False
-    
+
     def __init__(self,
                  file,
                  mode='r',
@@ -121,7 +126,7 @@ class IPAFile(ZipFile):
     def _raise_ipa_error(self):
         self.close()
         raise BadIPAError(self.filename)
-    
+
     def _get_app_info(self):
         """Find application's Info.plist and read it"""
         info_plist = None
@@ -137,28 +142,28 @@ class IPAFile(ZipFile):
         self.app_info = readPlistFromString(info_plist)
 
         return self.app_info
-    
+
     def _vailidate_family(self, family):
         return family if not isinstance(family, str) else int(family)
-    
+
     def get_device_family(self):
         device_families = self.app_info['UIDeviceFamily']
         has_device_id = len(device_families) == 1
-        
+
         if not has_device_id:
             return 'universal'
-        
+
         family = self._vailidate_family(device_families[0])
-        
+
         if family is 1:
             return 'iphone'
         elif family is 2:
             return 'ipad'
-        
+
         raise UnknownDeviceFamilyError(
             'Unknown device family id ({0})'.format(family)
         )
-    
+
     def get_app_name(self):
         keys = (
             'CFBundleDisplayName',
@@ -166,50 +171,50 @@ class IPAFile(ZipFile):
             'CFBundleExecutable',
             'CFBundleIdentifier',
         )
-        
+
         name = None
-        
+
         for key in keys:
             if key in self.app_info:
                 name = self.app_info[key].strip()
                 break
-        
+
         if not name:
             raise InvalidApplicationNameError(
                 'libipa cannot determine the IPA application version.'
             )
-        
+
         return name
-    
+
     def get_app_version(self):
         keys = (
             'CFBundleShortVersionString',
             'CFBundleVersion',
         )
-        
+
         version = None
-        
+
         for key in keys:
             if key in self.app_info:
                 version = self.app_info[key].strip()
                 break
-        
+
         if not version:
             raise UnknownApplicationVersionError(
                 'libipa cannot determine the IPA version.'
             )
-        
+
         return version
-    
+
     def is_ipad(self):
         return self.get_device_family() == 'ipad'
-    
+
     def is_iphone(self):
         return self.get_device_family() == 'iphone'
-    
+
     def is_universal(self):
         return self.get_device_family() == 'universal'
-    
+
     def get_ipa_filename(self):
         """
         Returns an approximate name of the IPA that iTunes would use when
@@ -222,10 +227,9 @@ class IPAFile(ZipFile):
             )
         except InvalidUnicodeApplicationNameError as e:
             self.logger.error(
-                'UnicodeEncodeError with name or version key '
-               '(%s)'.format(self.app_info['CFBundleIdentifier'])
-             )
-             
+                'Invalid unicode in name or version key {0}'
+                .format(self.app_info['CFBundleIdentifier']))
+
             raise e
 
         raise UnknownApplicationNameError(
@@ -257,9 +261,9 @@ class IPAFile(ZipFile):
                 self.app_info['fileExtension'],
                 bin_name,
             )
-        
+
         return bin_name
-    
+
     def __str__(self):
         structured_types = (list, dict,)
         ret = []
@@ -272,8 +276,9 @@ class IPAFile(ZipFile):
             ret.append('%s: %s' % (k, v,))
 
         return '\n'.join(ret)
-    
+
     __repr__ = __str__
+
 
 class IPAInfo(IPAFile):
     def __init__(self, app_info={}, logger=None):
