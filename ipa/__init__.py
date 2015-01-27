@@ -1,6 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
 import json
 import logging
 import re
@@ -188,18 +188,22 @@ class IPAFile(ZipFile):
         
         family = self._vailidate_family(device_families[0])
         
-        if family == 1:
+        '''
+        Optimization.
+        >>> timeit.timeit('a=1\nif a is 1:\n pass', number=1000)
+        0.00015115737915039062
+        >>> timeit.timeit('a=1\nif a == 1:\n pass', number=1000)
+        0.00015091896057128906
+        '''
+
+        if family is 1:
             return 'iphone'
-        elif family == 2:
+        elif family is 2:
             return 'ipad'
         
         raise UnknownDeviceFamilyError(
             'Unknown device family id ({0})'.format(family)
         )
-    
-    
-    def _determine_app_name(self, name):
-        return name if name else None
     
     def get_app_name(self):
         keys = (
@@ -218,7 +222,7 @@ class IPAFile(ZipFile):
         
         if not name:
             raise InvalidApplicationNameError(
-                'Application name cannot be found.'
+                'libipa cannot determine the IPA application version.'
             )
         
         return name
@@ -289,9 +293,12 @@ class IPAFile(ZipFile):
 
         if full:
             if alt:
-                return 'Payload/%s/%s' % (app_dir, bin_name,)
+                return 'Payload/{0}/{1}'.format(
+                    app_dir,
+                    bin_name
+                )
 
-            return 'Payload/%s.%s/%s' % (
+            return 'Payload/{0}.{1}/{2}'.format(
                 self.app_info['bundleDisplayName'],
                 self.app_info['fileExtension'],
                 bin_name,
@@ -317,18 +324,3 @@ class IPAFile(ZipFile):
 class IPAInfo(IPAFile):
     def __init__(self, app_info={}, logger=None):
         self.app_info = app_info
-
-# In the long run this will be removed and testing will be
-# accessed in the setup.py.
-if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.ERROR)
-    
-    try:
-        logging.info('Reading {0}'.format(sys.argv[1]))
-        logging.info(unicode(IPAFile(sys.argv[1])))
-        #print('Reading %s' % (sys.argv[1],), file=sys.stderr)
-        #print(unicode(IPAFile(sys.argv[1])))
-    except BadIPAError as e:
-        logging.exception(e.msg)
-        #print(e.msg, file=sys.stderr)

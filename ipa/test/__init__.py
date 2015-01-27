@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 from __future__ import unicode_literals
 from os import remove as rm
 from tempfile import mkstemp
@@ -32,14 +34,14 @@ class TestIPAFile(unittest.TestCase):
         if not app_name:
             app_name = self._random_string()
         if six.PY2:
-            app_dir = b'%s.app' % (app_name,)
+            app_dir = b'%s.app' % (app_name)
         else:
             app_dir = '{0}.app'.format(app_name).encode('utf-8')
-
+            
         with ZipFile(zippath, 'w', ZIP_DEFLATED) as h:
             if create_info_plist:
                 info = dict(
-                    CFBundleIdentifier='com.%s.%s' % (
+                    CFBundleIdentifier='com.{0}.{1}'.format(
                         self._random_string(), self._random_string(),
                     ),
                     CFBundleDisplayName=app_name,
@@ -93,6 +95,7 @@ class TestIPAFile(unittest.TestCase):
 
     def test_ipa_info(self):
         ipa = IPAFile(self._create_ipa())
+        
         keys = (
             'CFBundleIdentifier',
             'CFBundleDisplayName',
@@ -105,10 +108,9 @@ class TestIPAFile(unittest.TestCase):
         for k in keys:
             self.assertIn(k, ipa.app_info)
     
-    @unittest.skip("Broken.")
     def test_unicode_app_name(self):
-        self.Skip()
-        ipa = IPAFile(self._create_ipa(app_name='ありがとう你好مرحبا'.encode('utf-8')))
+        name = 'ありがとう你好ברוכים'.encode('utf-8')
+        ipa = IPAFile(self._create_ipa(app_name=name))
         keys = (
             'CFBundleIdentifier',
             'CFBundleDisplayName',
@@ -197,9 +199,8 @@ class TestIPAFile(unittest.TestCase):
         )
 
     def test_get_bin_name_full_no_display_name(self):
-        ipa = IPAFile(
-            self._create_ipa(app_name='A Name', bundle_display_name=False)
-        )
+        ipa = IPAFile(self._create_ipa(app_name='A Name', 
+                                       bundle_display_name=False))
         self.assertEqual(
             'Payload/A Name.app/A Name', ipa.get_bin_name(full=True)
         )
