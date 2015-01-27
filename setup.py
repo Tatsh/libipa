@@ -1,4 +1,7 @@
-from distutils.core import setup
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+from setuptools import setup
 
 setup(
     name='libipa',
@@ -10,6 +13,7 @@ setup(
     url='https://github.com/Tatsh/libipa',
     license='LICENSE.txt',
     description='Library to read IPA files (iOS application archives).',
+    test_suite='ipa.test',
     long_description='No description.',
     install_requires=[
         'biplist>=0.7',
