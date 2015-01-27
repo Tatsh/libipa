@@ -8,7 +8,7 @@ setup(
     version='0.0.7~r1',
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
-    packages=['ipa', 'ipa.test'],
+    packages=['ipa'],
     url='https://github.com/Tatsh/libipa',
     license='LICENSE.txt',
     description='Library to read IPA files (iOS application archives).',
