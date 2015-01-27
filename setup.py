@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='libipa',
-    version='0.0.7~r1',
+    version='0.0.5',
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
     packages=['ipa'],

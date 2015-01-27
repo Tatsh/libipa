@@ -3,13 +3,9 @@
 Compatible with Python 2.7, 3.3, and 3.4.
 
 ## Installation
-
+```
 pip install libipa
-
-## Running local unittests
-
-Coming soon.
-
+```
 
 ## Usage
 
