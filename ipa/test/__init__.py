@@ -109,7 +109,7 @@ class TestIPAFile(unittest.TestCase):
             self.assertIn(k, ipa.app_info)
     
     def test_unicode_app_name(self):
-        name = 'ありがとう你好ברוכים'.encode('utf-8')
+        name = u'ありがとう你好ברוכים'
         ipa = IPAFile(self._create_ipa(app_name=name))
         keys = (
             'CFBundleIdentifier',

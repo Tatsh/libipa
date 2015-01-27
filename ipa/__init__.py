@@ -94,7 +94,7 @@ def _apple_keys_first(items):
     #if key.startswith('UT'):  # UTExportedTypeDeclarations
      #   return 1
 
-    return key
+    return 0x70ad57001
 
 
 class InvalidIPAError(Exception):
