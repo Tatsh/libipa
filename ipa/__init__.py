@@ -1,7 +1,5 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from shutil import move as move_file, rmtree
-from tempfile import mkdtemp
 import json
 import logging
 import re
@@ -27,50 +25,63 @@ def _apple_keys_first(items):
 
     https://developer.apple.com/library/ios/documentation/general/Reference/InfoPlistKeyReference/Introduction/Introduction.html"""
     key, val = items
-    if key.startswith('AP'):  # APInstallerURL
+    if key[0:2] is 'AP':
         return -13
-    if key.startswith('ATS'):  # ATSApplicationFontsPath
+    if key[0:3] is 'ATS':
         return -12
     if key == 'BuildMachineOSBuild':
         return -11
-    if key.startswith('CF'):
+    if key[0:2] is 'CF':
         return -10
-    if key.startswith('CS'):  # CSResourcesFileMapped
+    if key[0:2] is 'CS':
         return -9
-    if key.startswith('DT'):
+    if key[0:2] is 'DT':
         return -8
-    if key.startswith('GK'):  # GameKit keys
+    if key[0:2] is 'GK':
         return -7
-    if key.startswith('LS'):  # Launch Services
+    if key[0:2] is 'LS':
         return -6
     if key == 'MinimumOSVersion':
         return -5
-    if key.startswith('MK'):
+    if key[0:2] is 'MK':
         return -4
-    if key.startswith('NS'):
+    if key[0:2] is 'NS':
         return -3
-    if key.startswith('QL'):  # QLSandboxUnsupported
+    if key[0:2] is 'QL':
         return -2
     if key == 'QuartzGLEnable':
         return -1
-    if key.startswith('UI'):
+    if key[0:2] is 'UI':
         return 0
-    if key.startswith('UT'):  # UTExportedTypeDeclarations
+    if key[0:2] is 'UT':
         return 1
 
-    return key
+    return 777
 
 
 class BadIPAError(Exception):
-    msg = 'File "%s" not detected as iOS application distribution file.'
+    msg = 'File "{0}" not detected as iOS application distribution file.'
 
     def __init__(self, filename, msg=None):
         if msg:
             self.msg = msg
-        self.msg = self.msg % (filename,)
+
+        self.msg = self.msg.format(filename)
 
 
-class AppNameOrVersionError(Exception):
+class InvalidApplicationNameError(Exception):
+    pass
+
+
+class InvalidUnicodeApplicationNameError(UnicodeEncodeError):
+    pass
+
+
+class UnknownApplicationNameError(Exception):
+    pass
+
+
+class UnknownApplicationVersionError(Exception):
     pass
 
 
@@ -82,7 +93,8 @@ class IPAFile(ZipFile):
     info_plist_regex = re.compile(r'^Payload/[^/]+/Info\.plist$',
                                   re.UNICODE)
     app_info = None
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('IPAFile')
+    debug = False
 
     def __init__(self,
                  file,
@@ -130,30 +142,26 @@ class IPAFile(ZipFile):
 
         return self.app_info
 
+    def _vailidate_family(self, family):
+        return family if not isinstance(family, str) else int(family)
+
     def get_device_family(self):
         device_families = self.app_info['UIDeviceFamily']
+        has_device_id = len(device_families) == 1
 
-        if len(device_families) == 1:
-            family = device_families[0]
+        if not has_device_id:
+            return 'universal'
 
-            # Sometimes these values are not longs, but instead strings
-            # (NSString of course)
-            if isinstance(family, str):
-                family = int(family)
+        family = self._vailidate_family(device_families[0])
 
-            if family == 2:
-                device_family = 'ipad'
-            elif family == 1:
-                device_family = 'iphone'  # iPhone/iPod Touch only app
-            else:
-                raise UnknownDeviceFamilyError('Unknown device family ID %d' % (family,))
-        else:
-            device_family = 'universal'
+        if family is 1:
+            return 'iphone'
+        elif family is 2:
+            return 'ipad'
 
-        return device_family
-
-    def is_universal(self):
-        return get_device_family() == 'universal'
+        raise UnknownDeviceFamilyError(
+            'Unknown device family id ({0})'.format(family)
+        )
 
     def get_app_name(self):
         keys = (
@@ -162,38 +170,49 @@ class IPAFile(ZipFile):
             'CFBundleExecutable',
             'CFBundleIdentifier',
         )
+
         name = None
 
         for key in keys:
-            if key not in self.app_info:
-                continue
-
-            name = self.app_info[key].strip()
-
-            if not name:
-                continue
-            else:
+            if key in self.app_info:
+                name = self.app_info[key].strip()
                 break
 
         if not name:
-            raise AppNameOrVersionError('Unable to get an application name %s' %
-                                        (app_info,))
+            raise InvalidApplicationNameError(
+                'libipa cannot determine the IPA application version.'
+            )
 
         return name
 
     def get_app_version(self):
-        try:
-            val = self.app_info['CFBundleShortVersionString'].strip()
+        keys = (
+            'CFBundleShortVersionString',
+            'CFBundleVersion',
+        )
 
-            if val:
-                return val
-        except KeyError:
-            val = self.app_info['CFBundleVersion'].strip()
+        version = None
 
-            if val:
-                return val
+        for key in keys:
+            if key in self.app_info:
+                version = self.app_info[key].strip()
+                break
 
-        raise AppNameOrVersionError('Cannot get application version string')
+        if not version:
+            raise UnknownApplicationVersionError(
+                'libipa cannot determine the IPA version.'
+            )
+
+        return version
+
+    def is_ipad(self):
+        return self.get_device_family() == 'ipad'
+
+    def is_iphone(self):
+        return self.get_device_family() == 'iphone'
+
+    def is_universal(self):
+        return self.get_device_family() == 'universal'
 
     def get_ipa_filename(self):
         """
@@ -205,12 +224,44 @@ class IPAFile(ZipFile):
                 self.get_app_name(),
                 self.get_app_version(),
             )
-        except UnicodeEncodeError as e:
-            self.logger.error('UnicodeEncodeError with name or version key '
-                              '(%s)' % (self.app_info['CFBundleIdentifier'],))
+        except InvalidUnicodeApplicationNameError as e:
+            self.logger.error(
+                'Invalid unicode in name or version key {0}'
+                .format(self.app_info['CFBundleIdentifier']))
+
             raise e
 
-        raise AppNameOrVersionError('Could not determine an IPA file name')
+        raise UnknownApplicationNameError(
+            'Could not determine an IPA file name'
+        )
+
+    def get_bin_name(self, full=False):
+        alt = False
+
+        try:
+            bin_name = self.app_info['bundleDisplayName']
+        except KeyError:
+            self.logger.info('Using alternative method to guess binary name')
+
+            alt = True
+            app_dir = [x for x in self.namelist()
+                       if re.match(r'Payload/.+\.app', x)][0].split('/')[0:2][1]
+            bin_name = app_dir[0:-4]
+
+        if full:
+            if alt:
+                return 'Payload/{0}/{1}'.format(
+                    app_dir,
+                    bin_name
+                )
+
+            return 'Payload/{0}.{1}/{2}'.format(
+                self.app_info['bundleDisplayName'],
+                self.app_info['fileExtension'],
+                bin_name,
+            )
+
+        return bin_name
 
     def get_bin_name(self, full=False):
         alt = False
@@ -256,11 +307,3 @@ class IPAFile(ZipFile):
 class IPAInfo(IPAFile):
     def __init__(self, app_info={}, logger=None):
         self.app_info = app_info
-
-
-if __name__ == '__main__':
-    try:
-        print('Reading %s' % (sys.argv[1],), file=sys.stderr)
-        print(unicode(IPAFile(sys.argv[1])))
-    except BadIPAError as e:
-        print(e.msg, file=sys.stderr)
