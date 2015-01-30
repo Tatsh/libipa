@@ -1,24 +1,30 @@
 #!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
 from __future__ import print_function
 from os.path import isdir, join as path_join, realpath
 from shutil import move as move_file, rmtree
 from tempfile import mkdtemp
 import argparse
+import logging
 import sys
 
 from ipa import IPAFile
 
 if __name__ == '__main__':
+    logger = logging.getLogger('IPA-unzipper')
+    logger.setLevel(logging.ERROR)
     parser = argparse.ArgumentParser()
 
     parser.add_argument('ipa', metavar='IPA_FILE', nargs=1)
-    parser.add_argument('-d', '--destination', metavar='DEST', default='.', required=False)
+    parser.add_argument('-d', '--destination', metavar='DEST', default='.',
+                        required=False)
 
     args = parser.parse_args()
     dest = realpath(args.destination)
 
     if not isdir(dest):
-        print('Error: Destination is expected to be a directory', file=sys.stderr)
+        print('Destination is expected to be a directory.', file=sys.stderr)
         sys.exit(1)
 
     with IPAFile(args.ipa[0]) as fp:
