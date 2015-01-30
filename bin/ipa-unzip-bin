@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
+from __future__ import print_function
 from os.path import isdir, join as path_join, realpath
 from shutil import move as move_file, rmtree
 from tempfile import mkdtemp
@@ -23,7 +24,7 @@ if __name__ == '__main__':
     dest = realpath(args.destination)
 
     if not isdir(dest):
-        logging.error("Destination is expected to be a directory.")
+        print('Destionation is expected to be a directory.', file=sys.stderr)
         sys.exit(1)
 
     with IPAFile(args.ipa[0]) as fp:
