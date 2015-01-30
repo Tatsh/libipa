@@ -24,7 +24,7 @@ if __name__ == '__main__':
     dest = realpath(args.destination)
 
     if not isdir(dest):
-        print('Destionation is expected to be a directory.', file=sys.stderr)
+        print('Destination is expected to be a directory.', file=sys.stderr)
         sys.exit(1)
 
     with IPAFile(args.ipa[0]) as fp:
