@@ -3,7 +3,7 @@
 import json
 import logging
 import re
-import sys
+import sys # This isn't needed anymore
 from zipfile import (
     ZIP_STORED,
     ZipFile,
@@ -12,14 +12,13 @@ from zipfile import (
 from biplist import readPlistFromString
 
 __all__ = [
-    'AppNameOrVersionError',
     'BadIPAError',
     'IPAFile',
     'IPAInfo',
     'UnknownDeviceFamilyError',
 ]
 
-
+## This may be moved to a file named utils.py or something similar.
 def _apple_keys_first(items):
     """Attempt to put all Apple official keys first.
 
@@ -58,6 +57,33 @@ def _apple_keys_first(items):
 
     return 777
 
+def _yn(s):
+    return 'Yes' if s else 'No'
+
+def _tests_fails(a, b):
+    return 1 if a and not b else 2
+
+def _tests_report(a, b):
+    msg_info = 'Could not obtain the "Info.plist" file from archive.'
+    msg_itunes = 'Could not obtain the "iTunesMetadata.plist" file from ' \
+        'archive.'
+    msg_both = 'Could not obtain the "Info.plist" and "iTunesMetadata.plist"' \
+        'files from arcive.'
+
+    if not a and not b:
+        return msg_both
+
+    return msg_info if not a and b else msg_itunes
+
+def _family_tests_report(a=None):
+    if a is 1:
+        return 'IPhone'
+
+    if a is 2:
+        return 'IPad'
+
+## This may be moved to a file named utils.py or something similar. ##
+## END ##
 
 class BadIPAError(Exception):
     msg = 'File "{0}" not detected as iOS application distribution file.'
@@ -93,15 +119,13 @@ class IPAFile(ZipFile):
     info_plist_regex = re.compile(r'^Payload/[^/]+/Info\.plist$',
                                   re.UNICODE)
     app_info = None
-    logger = logging.getLogger('IPAFile')
-    debug = False
-
+    _logger = logging.getLogger('libipa')
     def __init__(self,
                  file,
                  mode='r',
                  compression=ZIP_STORED,
                  allowZip64=True,
-                 level=logging.ERROR):
+                 debug=False):
         """Open IPA file. Primary difference from ZipFile is that allowZip64
         is set to True by default because many IPA files are larger than 2
         GiB in file size."""
@@ -112,18 +136,35 @@ class IPAFile(ZipFile):
                          allowZip64=allowZip64)
 
         filenames = self.namelist()
+
+        self._logger.debug('Files within the archive.\n{0}'.format(filenames))
+
         matched = len([x for x in [re.match(self.info_plist_regex, y)
                                    for y in filenames]
                        if x]) == 1
+
+        self._logger.debug('IPA file passes test phase one: {0}'.format(
+            _yn(matched)))
         is_ipa = 'iTunesMetadata.plist' in filenames and matched
+        self._logger.debug('IPA file passes test phase two: {0}'.format(
+            _yn(is_ipa)))
 
         if not is_ipa:
+            self._logger.debug(
+                'IPA file failed {0}/2 test phases, IPA file is invalid.'.format(
+                    _tests_fails(matched, is_ipa)))
+
+            self._logger.debug('IPA file test phase report: {0}'.format(
+                _tests_report(matched, is_ipa)))
+
             self._raise_ipa_error('Not an IPA')
 
+        self._logger.debug('IPA file passes all tests, IPA file is valid.')
         self._get_app_info()
 
     def _raise_ipa_error(self, msg):
         self.close()
+        self._logger.debug('Closing Zipfile.')
         raise BadIPAError(self.filename if not msg else msg)
 
     def _get_app_info(self):
@@ -148,11 +189,16 @@ class IPAFile(ZipFile):
     def get_device_family(self):
         device_families = self.app_info['UIDeviceFamily']
         has_device_id = len(device_families) == 1
+        self._logger.info('IPA info file contains device id: {0}'.format(
+            has_device_id))
 
         if not has_device_id:
+            self._logger.debug('IPA Device: Universal.')
             return 'universal'
 
         family = self._vailidate_family(device_families[0])
+        self._logger.debug('IPA Device: {0}'.format(
+            _family_tests_report(family)))
 
         if family is 1:
             return 'iphone'
@@ -162,6 +208,10 @@ class IPAFile(ZipFile):
         raise UnknownDeviceFamilyError(
             'Unknown device family id ({0})'.format(family)
         )
+
+    @property
+    def logger(self):
+        return self._logger
 
     def get_app_name(self):
         keys = (
@@ -177,6 +227,8 @@ class IPAFile(ZipFile):
             if key in self.app_info:
                 name = self.app_info[key].strip()
                 break
+
+        self._logger.debug('IPA application name: {0}'.format(name))
 
         if not name:
             raise InvalidApplicationNameError(
@@ -197,6 +249,8 @@ class IPAFile(ZipFile):
             if key in self.app_info:
                 version = self.app_info[key].strip()
                 break
+
+        self._logger.debug('IPA application version {0}'.format(version))
 
         if not version:
             raise UnknownApplicationVersionError(
@@ -225,9 +279,7 @@ class IPAFile(ZipFile):
                 self.get_app_version(),
             )
         except InvalidUnicodeApplicationNameError as e:
-            self.logger.error(
-                'Invalid unicode in name or version key {0}'
-                .format(self.app_info['CFBundleIdentifier']))
+            self._logger.exception(e.msg)
 
             raise e
 
@@ -247,6 +299,8 @@ class IPAFile(ZipFile):
             app_dir = [x for x in self.namelist()
                        if re.match(r'Payload/.+\.app', x)][0].split('/')[0:2][1]
             bin_name = app_dir[0:-4]
+            self._logger.debug('IPA application directory {0}.'.format(app_dir))
+            self._logger.debug('IPA binary name {0}.'.format(bin_name))
 
         if full:
             if alt:
@@ -256,31 +310,6 @@ class IPAFile(ZipFile):
                 )
 
             return 'Payload/{0}.{1}/{2}'.format(
-                self.app_info['bundleDisplayName'],
-                self.app_info['fileExtension'],
-                bin_name,
-            )
-
-        return bin_name
-
-    def get_bin_name(self, full=False):
-        alt = False
-
-        try:
-            bin_name = self.app_info['bundleDisplayName']
-        except KeyError:
-            self.logger.info('Using alternative method to guess binary name')
-
-            alt = True
-            app_dir = [x for x in self.namelist()
-                       if re.match(r'Payload/.+\.app', x)][0].split('/')[0:2][1]
-            bin_name = app_dir[0:-4]
-
-        if full:
-            if alt:
-                return 'Payload/%s/%s' % (app_dir, bin_name,)
-
-            return 'Payload/%s.%s/%s' % (
                 self.app_info['bundleDisplayName'],
                 self.app_info['fileExtension'],
                 bin_name,
