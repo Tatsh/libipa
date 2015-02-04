@@ -7,7 +7,7 @@ import re
 from zipfile import (
     ZIP_STORED,
     ZipFile,
-)t
+)
 
 from biplist import readPlistFromString
 
