@@ -195,7 +195,7 @@ class IPAFile(ZipFile):
         device_families = self.app_info['UIDeviceFamily']
         has_device_id = len(device_families) == 1
         self._logger.info('IPA info file contains device id: {0}'.format(
-            has_device_id))
+            _yn(has_device_id)))
 
         if not has_device_id:
             self._logger.debug('IPA Device: Universal.')
