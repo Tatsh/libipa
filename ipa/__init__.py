@@ -128,8 +128,7 @@ class IPAFile(ZipFile):
                  file,
                  mode='r',
                  compression=ZIP_STORED,
-                 allowZip64=True,
-                 debug=False):
+                 allowZip64=True):
         """Open IPA file. Primary difference from ZipFile is that allowZip64
         is set to True by default because many IPA files are larger than 2
         GiB in file size."""
