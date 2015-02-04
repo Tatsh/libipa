@@ -3,11 +3,11 @@
 import json
 import logging
 import re
-import sys # This isn't needed anymore
+
 from zipfile import (
     ZIP_STORED,
     ZipFile,
-)
+)t
 
 from biplist import readPlistFromString
 
@@ -18,7 +18,7 @@ __all__ = [
     'UnknownDeviceFamilyError',
 ]
 
-## This may be moved to a file named utils.py or something similar.
+
 def _apple_keys_first(items):
     """Attempt to put all Apple official keys first.
 
@@ -57,11 +57,14 @@ def _apple_keys_first(items):
 
     return 777
 
+
 def _yn(s):
     return 'Yes' if s else 'No'
 
+
 def _tests_fails(a, b):
     return 1 if a and not b else 2
+
 
 def _tests_report(a, b):
     msg_info = 'Could not obtain the "Info.plist" file from archive.'
@@ -75,6 +78,7 @@ def _tests_report(a, b):
 
     return msg_info if not a and b else msg_itunes
 
+
 def _family_tests_report(a=None):
     if a is 1:
         return 'IPhone'
@@ -82,8 +86,6 @@ def _family_tests_report(a=None):
     if a is 2:
         return 'IPad'
 
-## This may be moved to a file named utils.py or something similar. ##
-## END ##
 
 class BadIPAError(Exception):
     msg = 'File "{0}" not detected as iOS application distribution file.'
@@ -120,6 +122,7 @@ class IPAFile(ZipFile):
                                   re.UNICODE)
     app_info = None
     _logger = logging.getLogger('libipa')
+
     def __init__(self,
                  file,
                  mode='r',
@@ -151,15 +154,17 @@ class IPAFile(ZipFile):
 
         if not is_ipa:
             self._logger.debug(
-                'IPA file failed {0}/2 test phases, IPA file is invalid.'.format(
-                    _tests_fails(matched, is_ipa)))
+                'IPA file failed {0}/2 test phases, IPA file is invalid.'.
+                format(_tests_fails(matched, is_ipa)))
 
             self._logger.debug('IPA file test phase report: {0}'.format(
                 _tests_report(matched, is_ipa)))
 
             self._raise_ipa_error('Not an IPA')
 
-        self._logger.debug('IPA file passes all tests, IPA file is valid.')
+        self._logger.debug(
+            'IPA file passes all test phases, IPA file is valid.')
+
         self._get_app_info()
 
     def _raise_ipa_error(self, msg):
@@ -297,9 +302,11 @@ class IPAFile(ZipFile):
 
             alt = True
             app_dir = [x for x in self.namelist()
-                       if re.match(r'Payload/.+\.app', x)][0].split('/')[0:2][1]
+                       if re.match(r'Payload/.+\.app', x)
+                       ][0].split('/')[0:2][1]
             bin_name = app_dir[0:-4]
-            self._logger.debug('IPA application directory {0}.'.format(app_dir))
+            self._logger.debug('IPA application directory {0}.'.format(
+                app_dir))
             self._logger.debug('IPA binary name {0}.'.format(bin_name))
 
         if full:
