@@ -68,10 +68,11 @@ def _tests_fails(a, b):
 
 def _tests_report(a, b):
     msg_info = 'Could not obtain the "Info.plist" file from archive.'
-    msg_itunes = 'Could not obtain the "iTunesMetadata.plist" file from ' \
-        'archive.'
-    msg_both = 'Could not obtain the "Info.plist" and "iTunesMetadata.plist"' \
-        'files from arcive.'
+    msg_itunes = ('Could not obtain the "iTunesMetadata.plist" file from ' +
+                  'archive.')
+    msg_both = (
+        'Could not obtain the "Info.plist" and "iTunesMetadata.plist"' +
+        'files from archive.')
 
     if not a and not b:
         return msg_both
@@ -81,10 +82,10 @@ def _tests_report(a, b):
 
 def _family_tests_report(a=None):
     if a is 1:
-        return 'IPhone'
+        return 'iPhone'
 
     if a is 2:
-        return 'IPad'
+        return 'iPad'
 
 
 class BadIPAError(Exception):
