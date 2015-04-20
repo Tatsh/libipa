@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import json
 import logging
 import re
@@ -192,27 +193,35 @@ class IPAFile(ZipFile):
         return family if not isinstance(family, str) else int(family)
 
     def get_device_family(self):
-        device_families = self.app_info['UIDeviceFamily']
-        has_device_id = len(device_families) == 1
+        has_device_id = False
+        try:
+            device_families = self.app_info[b'UIDeviceFamily']
+            has_device_id = True
+        except KeyError:
+            try:
+                device_families = self.app_info['UIDeviceFamily']
+                has_device_id = True
+            except KeyError:
+                pass
         self._logger.info('IPA info file contains device id: {0}'.format(
             _yn(has_device_id)))
 
         if not has_device_id:
-            self._logger.debug('IPA Device: Universal.')
+            self._logger.debug('IPA Device: iPhone (assumed).')
+            return 'iphone'
+
+        if len(device_families) > 1:
+            self._logger.debug('IPA Device: Universal (assumed).')
             return 'universal'
 
         family = self._vailidate_family(device_families[0])
         self._logger.debug('IPA Device: {0}'.format(
             _family_tests_report(family)))
 
-        if family is 1:
-            return 'iphone'
-        elif family is 2:
+        if family is 2:
             return 'ipad'
 
-        raise UnknownDeviceFamilyError(
-            'Unknown device family id ({0})'.format(family)
-        )
+        return 'iphone'
 
     @property
     def logger(self):
@@ -237,7 +246,7 @@ class IPAFile(ZipFile):
 
         if not name:
             raise InvalidApplicationNameError(
-                'libipa cannot determine the IPA application version.'
+                'libipa cannot determine the IPA application name.'
             )
 
         return name
