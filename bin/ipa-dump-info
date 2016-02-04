@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+from __future__ import print_function
+from os.path import isdir, join as path_join, realpath
+from shutil import move as move_file, rmtree
+from tempfile import mkdtemp
+import argparse
+import json
+import sys
+
+from ipa import IPAFile, InvalidApplicationNameError
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('ipas', metavar='IPA_FILES', nargs='*')
+    parser.add_argument('-i', '--ignore-bad', action='store_true')
+    parser.add_argument('-j', '--json', action='store_true')
+
+    args = parser.parse_args()
+
+    for path in args.ipas:
+        with IPAFile(path) as fp:
+            out = fp.app_info
+
+            try:
+                out['Filename'] = fp.get_ipa_filename()
+            except InvalidApplicationNameError as e:
+                if args.ignore_bad:
+                    continue
+                else:
+                    raise e
+
+            if args.json:
+                out = json.dumps(out)
+
+            print(out)
