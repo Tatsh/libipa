@@ -25,12 +25,16 @@ if __name__ == '__main__':
             out = fp.app_info
 
             try:
-                out['Filename'] = fp.get_ipa_filename()
+                out['IPAFilename'] = fp.get_ipa_filename()
             except InvalidApplicationNameError as e:
                 if args.ignore_bad:
                     continue
                 else:
                     raise e
+
+            out['IPAIsUniversal'] = fp.is_universal()
+            out['UIUserInterfaceIdiomPad'] = fp.is_ipad()
+            out['UIUserInterfaceIdiomPhone'] = fp.is_iphone()
 
             if args.json:
                 out = json.dumps(out)
