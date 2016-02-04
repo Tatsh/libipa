@@ -127,6 +127,7 @@ class IPAFile(ZipFile):
 
     def __init__(self,
                  file,
+                 strict=False,
                  mode='r',
                  compression=ZIP_STORED,
                  allowZip64=True):
@@ -149,9 +150,12 @@ class IPAFile(ZipFile):
 
         self._logger.debug('IPA file passes test phase one: {0}'.format(
             _yn(matched)))
-        is_ipa = 'iTunesMetadata.plist' in filenames and matched
-        self._logger.debug('IPA file passes test phase two: {0}'.format(
-            _yn(is_ipa)))
+        if strict:
+            is_ipa = 'iTunesMetadata.plist' in filenames and matched
+            self._logger.debug('IPA file passes test phase two: {0}'.format(
+                _yn(is_ipa)))
+        else:
+            is_ipa = matched
 
         if not is_ipa:
             self._logger.debug(
