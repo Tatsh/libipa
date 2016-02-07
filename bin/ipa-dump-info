@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-
 from __future__ import print_function
+from datetime import date, datetime
 from os.path import isdir, join as path_join, realpath
 from shutil import move as move_file, rmtree
 from tempfile import mkdtemp
@@ -10,6 +10,17 @@ import json
 import sys
 
 from ipa import IPAFile, InvalidApplicationNameError
+
+
+def date_encoder(obj):
+    """
+    datetime.datetime() JSON serialisation handler.
+    http://stackoverflow.com/a/34303655/374110
+    """
+    if isinstance(obj, datetime) or isinstance(obj, date):
+        return obj.isoformat()
+    return None
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -37,6 +48,6 @@ if __name__ == '__main__':
             out['UIUserInterfaceIdiomPhone'] = fp.is_iphone()
 
             if args.json:
-                out = json.dumps(out)
+                out = json.dumps(out, default=date_encoder)
 
             print(out)
