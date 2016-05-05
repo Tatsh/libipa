@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Tatsh/libipa.svg?branch=master)](https://travis-ci.org/Tatsh/libipa)
 
-Compatible with Python 2.7, 3.3, and 3.4.
+Compatible with Python 2.7 and 3.4 and above. Python 3.3 is not supported.
 
 ## Installation
 ```
