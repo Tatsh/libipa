@@ -5,11 +5,11 @@ from setuptools import setup
 
 setup(
     name='libipa',
-    version='0.0.5',
+    version='0.0.6',
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
     packages=['ipa'],
-    scripts=['bin/ipa-unzip-bin'],
+    scripts=['bin/ipa-unzip-bin', 'bin/ipa-dump-info'],
     url='https://github.com/Tatsh/libipa',
     license='LICENSE.txt',
     description='Library to read IPA files (iOS application archives).',
